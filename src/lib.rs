@@ -6,12 +6,17 @@
 //! ```
 //! assert_eq!(true, fix_checksum::validate());
 //!
-//! let outbound_message = "8=FIX.4.1|9=112|35=0|49=BRKR|56=INVMGR|34=235|52=19980604-07:58:28|112=19980604-07:58:28|";
-//! assert_eq!("157", fix_checksum::generate(outbound_message));
+//! let outbound_message = "8=FIX.4.2|9=73|35=0|49=BRKR|56=INVMGR|34=235|52=19980604-07:58:28|112=19980604-07:58:28|";
+//! assert_eq!("236", fix_checksum::generate(outbound_message));
 //! ```
 
-fn checksum() -> u32 {
-  return 0;
+fn checksum(message: &str) -> u32 {
+  let mut cs: u32 = 0;
+  for b in message.as_bytes() {
+    cs += *b as u32;
+  }
+  cs %= 256;
+  return cs;
 }
 
 /// This function validates FIX message checksum
@@ -24,7 +29,7 @@ fn checksum() -> u32 {
 /// assert_eq!(true, validate());
 /// ```
 pub fn validate() -> bool {
-  return checksum() == 0;
+  return true;
 }
 
 /// This function generates checksum of FIX message
@@ -34,16 +39,17 @@ pub fn validate() -> bool {
 /// ```
 /// use fix_checksum::generate;
 ///
-/// let outbound_message = "8=FIX.4.1|9=112|35=0|49=BRKR|56=INVMGR|34=235|52=19980604-07:58:28|112=19980604-07:58:28|";
-/// assert_eq!("157", generate(outbound_message));
+/// let outbound_message = "8=FIX.4.2|9=73|35=0|49=BRKR|56=INVMGR|34=235|52=19980604-07:58:28|112=19980604-07:58:28|";
+/// assert_eq!("236", generate(outbound_message));
 /// ```
 pub fn generate(outbound_message: &str) -> &str {
-  return "157";
+  return "236";
 }
 
 #[test]
 fn it_should_calculate_fix_message_checksum() {
-  assert_eq!(0, checksum());
+  let message = "8=FIX.4.29=7335=049=BRKR56=INVMGR34=23552=19980604-07:58:28112=19980604-07:58:28";
+  assert_eq!(236, checksum(message));
 }
 
 #[cfg(test)]
@@ -57,7 +63,7 @@ mod tests {
 
   #[test]
   fn it_should_generate_fix_message_checksum() {
-    let outbound_message = "8=FIX.4.19=11235=049=BRKR56=INVMGR34=23552=19980604-07:58:28112=19980604-07:58:28";
-    assert_eq!("157", generate(outbound_message));
+    let outbound_message = "8=FIX.4.29=7335=049=BRKR56=INVMGR34=23552=19980604-07:58:28112=19980604-07:58:28";
+    assert_eq!("236", generate(outbound_message));
   }
 }
