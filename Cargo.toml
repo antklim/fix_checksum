@@ -1,4 +1,4 @@
 [package]
 name = "fix_checksum"
-version = "0.1.0"
-authors = ["antklim <anton.klimenko@adslot.com>"]
+version = "0.0.1"
+authors = ["Anton Klimenko <antklim@gmail.com>"]
