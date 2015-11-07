@@ -9,17 +9,18 @@
 //! // Validator
 //! assert_eq!(false, validate(""));
 //!
-//! let mut message = String::new();
 //! let message_parts: Vec<&str> = vec!["8=FIX.4.2", "9=73", "35=0", "49=BRKR",
 //!   "56=INVMGR", "34=235", "52=19980604-07:58:28", "112=19980604-07:58:28", "10=236"];
-//! for message_part in &message_parts { message = message + *message_part + "\x01"; }
+//! let mut message: String = message_parts
+//!   .iter()
+//!   .fold(String::new(), |msg, msg_part| msg.to_string() + msg_part + "\x01");
 //! assert_eq!(true, validate(&message));
 //!
 //! // Generator
-//! message = String::new();
-//! for message_part in message_parts.into_iter().take(8) {
-//!   message = message + message_part + "\x01";
-//! }
+//! message = message_parts
+//!   .iter()
+//!   .take(8)
+//!   .fold(String::new(), |msg, msg_part| msg.to_string() + msg_part + "\x01");
 //! assert_eq!("236", generate(&message));
 //! ```
 
@@ -41,47 +42,50 @@ fn checksum(message: &str) -> u32 {
 /// Empty message:
 ///
 /// ```
-/// let message = "";
-/// assert_eq!(false, fix_checksum::validate(message));
+/// assert_eq!(false, fix_checksum::validate(""));
 /// ```
 ///
 /// Message without tail:
 ///
 /// ```
-/// let mut message = String::new();
 /// let message_parts: Vec<&str> = vec!["8=FIX.4.2", "9=73", "35=0", "49=BRKR",
 ///   "56=INVMGR", "34=235", "52=19980604-07:58:28", "112=19980604-07:58:28"];
-/// for message_part in &message_parts { message = message + *message_part + "\x01"; }
+/// let message: String = message_parts
+///   .iter()
+///   .fold(String::new(), |msg, msg_part| msg.to_string() + msg_part + "\x01");
 /// assert_eq!(false, fix_checksum::validate(&message));
 /// ```
 ///
 /// Message with incorrect checksum value:
 ///
 /// ```
-/// let mut message = String::new();
 /// let message_parts: Vec<&str> = vec!["8=FIX.4.2", "9=73", "35=0", "49=BRKR",
 ///   "56=INVMGR", "34=235", "52=19980604-07:58:28", "112=19980604-07:58:28", "10=231"];
-/// for message_part in &message_parts { message = message + *message_part + "\x01"; }
+/// let message: String = message_parts
+///   .iter()
+///   .fold(String::new(), |msg, msg_part| msg.to_string() + msg_part + "\x01");
 /// assert_eq!(false, fix_checksum::validate(&message));
 /// ```
 ///
 /// Message with incorrect checksum format:
 ///
 /// ```
-/// let mut message = String::new();
 /// let message_parts: Vec<&str> = vec!["8=FIX.4.2", "9=73", "35=0", "49=BRKR",
 ///   "56=INVMGR", "34=235", "52=19980604-07:58:28", "112=19980604-07:58:28", "10=2ZZ"];
-/// for message_part in &message_parts { message = message + *message_part + "\x01"; }
+/// let message: String = message_parts
+///   .iter()
+///   .fold(String::new(), |msg, msg_part| msg.to_string() + msg_part + "\x01");
 /// assert_eq!(false, fix_checksum::validate(&message));
 /// ```
 ///
 /// Valid message:
 ///
 /// ```
-/// let mut message = String::new();
 /// let message_parts: Vec<&str> = vec!["8=FIX.4.2", "9=73", "35=0", "49=BRKR",
 ///   "56=INVMGR", "34=235", "52=19980604-07:58:28", "112=19980604-07:58:28", "10=236"];
-/// for message_part in &message_parts { message = message + *message_part + "\x01"; }
+/// let message: String = message_parts
+///   .iter()
+///   .fold(String::new(), |msg, msg_part| msg.to_string() + msg_part + "\x01");
 /// assert_eq!(true, fix_checksum::validate(&message));
 /// ```
 pub fn validate(inbound_message: &str) -> bool {
@@ -108,10 +112,11 @@ pub fn validate(inbound_message: &str) -> bool {
 /// # Examples
 ///
 /// ```
-/// let mut message = String::new();
 /// let message_parts: Vec<&str> = vec!["8=FIX.4.2", "9=73", "35=0", "49=BRKR",
 ///   "56=INVMGR", "34=235", "52=19980604-07:58:28", "112=19980604-07:58:28"];
-/// for message_part in &message_parts { message = message + *message_part + "\x01"; }
+/// let message: String = message_parts
+///   .iter()
+///   .fold(String::new(), |msg, msg_part| msg.to_string() + msg_part + "\x01");
 /// assert_eq!("236", fix_checksum::generate(&message));
 /// ```
 pub fn generate(outbound_message: &str) -> String {
@@ -120,10 +125,11 @@ pub fn generate(outbound_message: &str) -> String {
 
 #[test]
 fn it_should_calculate_fix_message_checksum() {
-  let mut message = String::new();
   let message_parts: Vec<&str> = vec!["8=FIX.4.2", "9=73", "35=0", "49=BRKR",
     "56=INVMGR", "34=235", "52=19980604-07:58:28", "112=19980604-07:58:28"];
-  for message_part in &message_parts { message = message + *message_part + "\x01"; }
+  let message: String = message_parts
+    .iter()
+    .fold(String::new(), |msg, msg_part| msg.to_string() + msg_part + "\x01");
   assert_eq!(236, checksum(&message));
 }
 
@@ -132,9 +138,9 @@ mod tests {
   use super::*;
 
   fn brew_message(message_parts: Vec<&str>, delimiter: &str) -> String {
-    let mut message = String::new();
-    for message_part in &message_parts { message = message + *message_part + delimiter; }
-    return message;
+    return message_parts
+      .iter()
+      .fold(String::new(), |message, message_part| message.to_string() + message_part + delimiter);
   }
 
   #[test]
@@ -145,7 +151,7 @@ mod tests {
     // no tail
     let mut message_parts: Vec<&str> = vec!["8=FIX.4.2", "9=73", "35=0", "49=BRKR",
       "56=INVMGR", "34=235", "52=19980604-07:58:28", "112=19980604-07:58:28"];
-    let mut message = brew_message(message_parts, "\x01");
+    let mut message: String = brew_message(message_parts, "\x01");
     assert_eq!(false, validate(&message));
 
     // invalid checksum value
@@ -171,7 +177,7 @@ mod tests {
   fn it_should_generate_fix_message_checksum() {
     let message_parts: Vec<&str> = vec!["8=FIX.4.2", "9=73", "35=0", "49=BRKR",
       "56=INVMGR", "34=235", "52=19980604-07:58:28", "112=19980604-07:58:28"];
-    let message = brew_message(message_parts, "\x01");
+    let message: String = brew_message(message_parts, "\x01");
     assert_eq!("236", generate(&message));
   }
 }
