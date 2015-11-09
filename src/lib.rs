@@ -7,14 +7,14 @@
 //! use fix_checksum::*;
 //!
 //! // Validator
-//! assert_eq!(false, validate(""));
+//! assert_eq!(validate("").err(), Some("message is empty"));
 //!
 //! let message_parts: Vec<&str> = vec!["8=FIX.4.2", "9=73", "35=0", "49=BRKR",
 //!   "56=INVMGR", "34=235", "52=19980604-07:58:28", "112=19980604-07:58:28", "10=236"];
 //! let mut message: String = message_parts
 //!   .iter()
 //!   .fold(String::new(), |msg, msg_part| msg.to_string() + msg_part + "\x01");
-//! assert_eq!(true, validate(&message));
+//! assert_eq!(validate(&message).ok(), Some(true));
 //!
 //! // Generator
 //! message = message_parts
@@ -42,7 +42,7 @@ fn checksum(message: &str) -> u32 {
 /// Empty message:
 ///
 /// ```
-/// assert_eq!(false, fix_checksum::validate(""));
+/// assert_eq!(fix_checksum::validate("").err(), Some("message is empty"));
 /// ```
 ///
 /// Message without tail:
@@ -53,18 +53,7 @@ fn checksum(message: &str) -> u32 {
 /// let message: String = message_parts
 ///   .iter()
 ///   .fold(String::new(), |msg, msg_part| msg.to_string() + msg_part + "\x01");
-/// assert_eq!(false, fix_checksum::validate(&message));
-/// ```
-///
-/// Message with incorrect checksum value:
-///
-/// ```
-/// let message_parts: Vec<&str> = vec!["8=FIX.4.2", "9=73", "35=0", "49=BRKR",
-///   "56=INVMGR", "34=235", "52=19980604-07:58:28", "112=19980604-07:58:28", "10=231"];
-/// let message: String = message_parts
-///   .iter()
-///   .fold(String::new(), |msg, msg_part| msg.to_string() + msg_part + "\x01");
-/// assert_eq!(false, fix_checksum::validate(&message));
+/// assert_eq!(fix_checksum::validate(&message).err(), Some("checksum field not found"));
 /// ```
 ///
 /// Message with incorrect checksum format:
@@ -75,7 +64,18 @@ fn checksum(message: &str) -> u32 {
 /// let message: String = message_parts
 ///   .iter()
 ///   .fold(String::new(), |msg, msg_part| msg.to_string() + msg_part + "\x01");
-/// assert_eq!(false, fix_checksum::validate(&message));
+/// assert_eq!(fix_checksum::validate(&message).err(), Some("cannot parse checksum"));
+/// ```
+///
+/// Message with incorrect checksum value:
+///
+/// ```
+/// let message_parts: Vec<&str> = vec!["8=FIX.4.2", "9=73", "35=0", "49=BRKR",
+///   "56=INVMGR", "34=235", "52=19980604-07:58:28", "112=19980604-07:58:28", "10=231"];
+/// let message: String = message_parts
+///   .iter()
+///   .fold(String::new(), |msg, msg_part| msg.to_string() + msg_part + "\x01");
+/// assert_eq!(fix_checksum::validate(&message).ok(), Some(false));
 /// ```
 ///
 /// Valid message:
@@ -86,15 +86,14 @@ fn checksum(message: &str) -> u32 {
 /// let message: String = message_parts
 ///   .iter()
 ///   .fold(String::new(), |msg, msg_part| msg.to_string() + msg_part + "\x01");
-/// assert_eq!(true, fix_checksum::validate(&message));
+/// assert_eq!(fix_checksum::validate(&message).ok(), Some(true));
 /// ```
-pub fn validate(inbound_message: &str) -> bool {
-  if inbound_message.is_empty() { return false; }
+pub fn validate(inbound_message: &str) -> Result<bool, &str> {
+  if inbound_message.is_empty() { return Err("message is empty"); }
 
   let tail_pattern = FIX_MESSAGE_DELIMITER.to_string() + FIX_CHECKSUM_FIELD;
-
   let tail_start = inbound_message.find(&tail_pattern);
-  if tail_start.is_none() { return false; }
+  if tail_start.is_none() { return Err("checksum field not found"); }
 
   let split_index = tail_start.unwrap() + 1;
   let (checksum_index_start, checksum_index_end) = (split_index + 3, split_index + 6);
@@ -102,9 +101,9 @@ pub fn validate(inbound_message: &str) -> bool {
   let checksum_to_be = checksum(&inbound_message[..split_index]);
   let checksum_as_is = inbound_message[checksum_index_start..checksum_index_end].parse::<u32>();
 
-  if checksum_as_is.is_err() { return false; }
+  if checksum_as_is.is_err() { return Err("cannot parse checksum"); }
 
-  return checksum_as_is.unwrap() == checksum_to_be;
+  return Ok(checksum_as_is.unwrap() == checksum_to_be);
 }
 
 /// This function generates checksum of FIX message
@@ -145,32 +144,27 @@ mod tests {
 
   #[test]
   fn it_should_validate_fix_message_checksum() {
-    // empty message
-    assert_eq!(false, validate(""));
+    assert_eq!(validate("").err(), Some("message is empty"));
 
-    // no tail
     let mut message_parts: Vec<&str> = vec!["8=FIX.4.2", "9=73", "35=0", "49=BRKR",
       "56=INVMGR", "34=235", "52=19980604-07:58:28", "112=19980604-07:58:28"];
     let mut message: String = brew_message(message_parts, "\x01");
-    assert_eq!(false, validate(&message));
+    assert_eq!(validate(&message).err(), Some("checksum field not found"));
 
-    // invalid checksum value
-    message_parts = vec!["8=FIX.4.2", "9=73", "35=0", "49=BRKR", "56=INVMGR",
-      "34=235", "52=19980604-07:58:28", "112=19980604-07:58:28", "10=231"];
-    message = brew_message(message_parts, "\x01");
-    assert_eq!(false, validate(&message));
-
-    // invalid checksum format
     message_parts = vec!["8=FIX.4.2", "9=73", "35=0", "49=BRKR", "56=INVMGR",
       "34=235", "52=19980604-07:58:28", "112=19980604-07:58:28", "10=2ZZ"];
     message = brew_message(message_parts, "\x01");
-    assert_eq!(false, validate(&message));
+    assert_eq!(validate(&message).err(), Some("cannot parse checksum"));
 
-    // valid
+    message_parts = vec!["8=FIX.4.2", "9=73", "35=0", "49=BRKR", "56=INVMGR",
+      "34=235", "52=19980604-07:58:28", "112=19980604-07:58:28", "10=231"];
+    message = brew_message(message_parts, "\x01");
+    assert_eq!(validate(&message).ok(), Some(false));
+
     message_parts = vec!["8=FIX.4.2", "9=73", "35=0", "49=BRKR", "56=INVMGR",
       "34=235", "52=19980604-07:58:28", "112=19980604-07:58:28", "10=236"];
     message = brew_message(message_parts, "\x01");
-    assert_eq!(true, validate(&message));
+    assert_eq!(validate(&message).ok(), Some(true));
   }
 
   #[test]
