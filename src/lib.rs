@@ -27,6 +27,7 @@
 
 use std::error::Error;
 use std::fmt;
+use std::num;
 
 use self::FIXChecksumValidatorError::{InvalidEmptyMessage, ChecksumFieldNotFound,
   ChecksumFieldInvalidFormat};
@@ -47,12 +48,13 @@ fn checksum(message: &str) -> u32 {
 pub enum FIXChecksumValidatorError {
   InvalidEmptyMessage,
   ChecksumFieldNotFound,
-  ChecksumFieldInvalidFormat,
+  ChecksumFieldInvalidFormat(num::ParseIntError),
 }
 
 impl fmt::Display for FIXChecksumValidatorError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
       match *self {
+          ChecksumFieldInvalidFormat(ref err) => write!(f, "{}: {}", self.description(), err),
           _ => write!(f, "{}", self.description()),
       }
     }
@@ -63,7 +65,7 @@ impl Error for FIXChecksumValidatorError {
         match *self {
           InvalidEmptyMessage => "Invalid empty message.",
           ChecksumFieldNotFound => "Checksum field not found.",
-          ChecksumFieldInvalidFormat => "Checksum value invalid format (parse error).",
+          ChecksumFieldInvalidFormat(..) => "Checksum value invalid format",
         }
     }
 }
@@ -99,7 +101,8 @@ impl Error for FIXChecksumValidatorError {
 /// let message: String = message_parts
 ///   .iter()
 ///   .fold(String::new(), |msg, msg_part| msg.to_string() + msg_part + "\x01");
-/// assert_eq!(fix_checksum::validate(&message).unwrap_err(), ChecksumFieldInvalidFormat);
+/// assert_eq!(fix_checksum::validate(&message).unwrap_err(),
+///   ChecksumFieldInvalidFormat("2ZZ".parse::<u32>().unwrap_err()));
 /// ```
 ///
 /// Message with incorrect checksum value:
@@ -134,11 +137,10 @@ pub fn validate(inbound_message: &str) -> Result<bool, FIXChecksumValidatorError
   let (checksum_index_start, checksum_index_end) = (split_index + 3, split_index + 6);
 
   let checksum_to_be = checksum(&inbound_message[..split_index]);
-  let checksum_as_is = inbound_message[checksum_index_start..checksum_index_end].parse::<u32>();
+  let checksum_as_is: u32 = try!(inbound_message[checksum_index_start..checksum_index_end]
+    .parse().map_err(FIXChecksumValidatorError::ChecksumFieldInvalidFormat));
 
-  if checksum_as_is.is_err() { return Err(ChecksumFieldInvalidFormat); }
-
-  return Ok(checksum_as_is.unwrap() == checksum_to_be);
+  Ok(checksum_as_is == checksum_to_be)
 }
 
 /// This function generates checksum of FIX message
@@ -191,7 +193,9 @@ mod tests {
     message_parts = vec!["8=FIX.4.2", "9=73", "35=0", "49=BRKR", "56=INVMGR",
       "34=235", "52=19980604-07:58:28", "112=19980604-07:58:28", "10=2ZZ"];
     message = brew_message(message_parts, "\x01");
-    assert_eq!(validate(&message).unwrap_err(), ChecksumFieldInvalidFormat);
+
+    assert_eq!(validate(&message).unwrap_err(),
+      ChecksumFieldInvalidFormat("2ZZ".parse::<u32>().unwrap_err()));
 
     message_parts = vec!["8=FIX.4.2", "9=73", "35=0", "49=BRKR", "56=INVMGR",
       "34=235", "52=19980604-07:58:28", "112=19980604-07:58:28", "10=231"];
