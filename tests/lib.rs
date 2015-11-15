@@ -22,7 +22,8 @@ fn it_should_validate_fix_message_checksum() {
   message_parts = vec!["8=FIX.4.2", "9=73", "35=0", "49=BRKR", "56=INVMGR",
     "34=235", "52=19980604-07:58:28", "112=19980604-07:58:28", "10=2ZZ"];
   message = brew_message(message_parts, "\x01");
-  assert_eq!(validate(&message).unwrap_err(), ChecksumFieldInvalidFormat);
+  assert_eq!(validate(&message).unwrap_err(),
+    ChecksumFieldInvalidFormat("2ZZ".parse::<u32>().unwrap_err()));
 
   message_parts = vec!["8=FIX.4.2", "9=73", "35=0", "49=BRKR", "56=INVMGR",
     "34=235", "52=19980604-07:58:28", "112=19980604-07:58:28", "10=231"];
