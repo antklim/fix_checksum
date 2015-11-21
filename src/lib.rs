@@ -52,22 +52,22 @@ pub enum FIXChecksumValidatorError {
 }
 
 impl fmt::Display for FIXChecksumValidatorError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-      match *self {
-          ChecksumFieldInvalidFormat(ref err) => write!(f, "{}: {}", self.description(), err),
-          _ => write!(f, "{}", self.description()),
-      }
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match *self {
+      ChecksumFieldInvalidFormat(ref err) => write!(f, "{}: {}", self.description(), err),
+      _ => write!(f, "{}", self.description()),
     }
+  }
 }
 
 impl Error for FIXChecksumValidatorError {
-    fn description(&self) -> &str {
-        match *self {
-          InvalidEmptyMessage => "Invalid empty message.",
-          ChecksumFieldNotFound => "Checksum field not found.",
-          ChecksumFieldInvalidFormat(..) => "Checksum value invalid format",
-        }
+  fn description(&self) -> &str {
+    match *self {
+      InvalidEmptyMessage => "Invalid empty message.",
+      ChecksumFieldNotFound => "Checksum field not found.",
+      ChecksumFieldInvalidFormat(..) => "Checksum value invalid format",
     }
+  }
 }
 
 /// This function validates FIX message checksum
@@ -156,7 +156,7 @@ pub fn validate(inbound_message: &str) -> Result<bool, FIXChecksumValidatorError
 /// assert_eq!("236", fix_checksum::generate(&message));
 /// ```
 pub fn generate(outbound_message: &str) -> String {
-  return checksum(outbound_message).to_string();
+  checksum(outbound_message).to_string()
 }
 
 #[test]
