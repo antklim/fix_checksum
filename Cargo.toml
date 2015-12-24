@@ -2,3 +2,8 @@
 name = "fix_checksum"
 version = "0.0.1"
 authors = ["Anton Klimenko <antklim@gmail.com>"]
+description = "Crate contains methods to validate/generate FIX-protocol message checksum"
+repository = "https://github.com/antklim/fix_checksum.git"
+readme = "README.md"
+keywords = ["FIX", "protocol", "checksum", "validator", "generator"]
+license = "MIT"
